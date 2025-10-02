@@ -44,8 +44,17 @@ impl SingleBatch {
         inclusion_block: &BlockInfo,
     ) -> BatchValidity {
         let next_timestamp = l2_safe_head.block_info.timestamp + cfg.block_time;
+        println!(
+            "\n\n#1 l2_safe_head.block_info.timestamp={}, cfg.block_time={}, next_timestamp={}, self.timestamp={}, self.timestamp > next_timestamp={}",
+            l2_safe_head.block_info.timestamp,
+            cfg.block_time,
+            next_timestamp,
+            self.timestamp,
+            self.timestamp > next_timestamp
+        );
         if self.timestamp > next_timestamp {
             if cfg.is_holocene_active(inclusion_block.timestamp) {
+                // TODO: reason 1
                 println!("\n\ndropping reason 1\n\n");
                 return BatchValidity::Drop;
             }
@@ -142,10 +151,20 @@ impl SingleBatch {
         };
 
         let no_txs = self.transactions.is_empty();
+        println!(
+            "#10 no_txs={}, self.timestamp={}, batch_origin.timestamp={}, max_drift={}, max={}, self.timestamp > max={}",
+            no_txs,
+            self.timestamp,
+            batch_origin.timestamp,
+            max_drift,
+            max,
+            self.timestamp > max
+        );
         if self.timestamp > max && !no_txs {
             // If the sequencer is ignoring the time drift rule, then drop the batch and force an
             // empty batch instead, as the sequencer is not allowed to include anything
             // past this point without moving to the next epoch.
+            // TODO: reason 2
             println!("\n\ndropping reason 10\n\n");
             return BatchValidity::Drop;
         }
