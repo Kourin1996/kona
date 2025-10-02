@@ -46,6 +46,7 @@ impl SingleBatch {
         let next_timestamp = l2_safe_head.block_info.timestamp + cfg.block_time;
         if self.timestamp > next_timestamp {
             if cfg.is_holocene_active(inclusion_block.timestamp) {
+                println!("\n\ndropping reason 1\n\n");
                 return BatchValidity::Drop;
             }
             return BatchValidity::Future;
@@ -54,6 +55,7 @@ impl SingleBatch {
             if cfg.is_holocene_active(inclusion_block.timestamp) {
                 return BatchValidity::Past;
             }
+            println!("\n\ndropping reason 2\n\n");
             return BatchValidity::Drop;
         }
         BatchValidity::Accept
@@ -87,17 +89,20 @@ impl SingleBatch {
         // Dependent on the above timestamp check.
         // If the timestamp is correct, then it must build on top of the safe head.
         if self.parent_hash != l2_safe_head.block_info.hash {
+            println!("\n\ndropping reason 3\n\n");
             return BatchValidity::Drop;
         }
 
         // Filter out batches that were included too late.
         if self.epoch_num + cfg.seq_window_size < inclusion_block.number {
+            println!("\n\ndropping reason 4\n\n");
             return BatchValidity::Drop;
         }
 
         // Check the L1 origin of the batch
         let mut batch_origin = epoch;
         if self.epoch_num < epoch.number {
+            println!("\n\ndropping reason 5\n\n");
             return BatchValidity::Drop;
         } else if self.epoch_num == epoch.number {
             // Batch is sticking to the current epoch, continue.
@@ -112,15 +117,18 @@ impl SingleBatch {
             }
             batch_origin = l1_blocks[1];
         } else {
+            println!("\n\ndropping reason 6\n\n");
             return BatchValidity::Drop;
         }
 
         // Validate the batch epoch hash
         if self.epoch_hash != batch_origin.hash {
+            println!("\n\ndropping reason 7\n\n");
             return BatchValidity::Drop;
         }
 
         if self.timestamp < batch_origin.timestamp {
+            println!("\n\ndropping reason 8\n\n");
             return BatchValidity::Drop;
         }
 
@@ -129,6 +137,7 @@ impl SingleBatch {
         let max = if let Some(max) = batch_origin.timestamp.checked_add(max_drift) {
             max
         } else {
+            println!("\n\ndropping reason 9\n\n");
             return BatchValidity::Drop;
         };
 
@@ -137,6 +146,7 @@ impl SingleBatch {
             // If the sequencer is ignoring the time drift rule, then drop the batch and force an
             // empty batch instead, as the sequencer is not allowed to include anything
             // past this point without moving to the next epoch.
+            println!("\n\ndropping reason 10\n\n");
             return BatchValidity::Drop;
         }
         if self.timestamp > max && no_txs {
@@ -151,6 +161,7 @@ impl SingleBatch {
                 let next_origin = l1_blocks[1];
                 // Check if the next L1 Origin could have been adopted
                 if self.timestamp >= next_origin.timestamp {
+                    println!("\n\ndropping reason 11\n\n");
                     return BatchValidity::Drop;
                 }
             }
@@ -163,21 +174,25 @@ impl SingleBatch {
                 target: "single_batch",
                 "Sequencer included user transactions in interop transition block. Dropping batch."
             );
+            println!("\n\ndropping reason 12\n\n");
             return BatchValidity::Drop;
         }
 
         // We can do this check earlier, but it's intensive so we do it last for the sad-path.
         for tx in self.transactions.iter() {
             if tx.is_empty() {
+                println!("\n\ndropping reason 13\n\n");
                 return BatchValidity::Drop;
             }
             if tx.as_ref().first() == Some(&(OpTxType::Deposit as u8)) {
+                println!("\n\ndropping reason 14\n\n");
                 return BatchValidity::Drop;
             }
             // If isthmus is not active yet and the transaction is a 7702, drop the batch.
-            if !cfg.is_isthmus_active(self.timestamp) &&
-                tx.as_ref().first() == Some(&(OpTxType::Eip7702 as u8))
+            if !cfg.is_isthmus_active(self.timestamp)
+                && tx.as_ref().first() == Some(&(OpTxType::Eip7702 as u8))
             {
+                println!("\n\ndropping reason 15\n\n");
                 return BatchValidity::Drop;
             }
         }
