@@ -130,7 +130,7 @@ where
         let mut remaining = Vec::new();
         for i in 0..self.batches.len() {
             let batch = &self.batches[i];
-            let validity =
+            let validity: BatchValidity =
                 batch.check_batch(&self.cfg, &self.l1_blocks, parent, &mut self.fetcher).await;
             match validity {
                 BatchValidity::Future => {
@@ -149,6 +149,15 @@ where
                     // stage.
                     self.prev.flush();
                     warn!(target: "batch_queue", "Dropping batch with parent: {}", parent.block_info);
+                    error!(
+                    target: "batch_queue",
+                        "!!!! Invalid singular batch, flushing current channel. l1_blocks={:?}, parent L2={}, batch.inclusion_block.number={}, batch.inclusion_block.hash={}, batch.inclusion_block.parent_hash={} !!!",
+                        self.l1_blocks,
+                        parent,
+                        batch.inclusion_block.number,
+                        batch.inclusion_block.hash,
+                        batch.inclusion_block.parent_hash,
+                    );
                     continue;
                 }
                 BatchValidity::Accept => {
@@ -178,6 +187,14 @@ where
 
         if let Some(nb) = next_batch {
             info!(target: "batch_queue", "Next batch found for timestamp {}", nb.batch.timestamp());
+            error!(
+                target: "batch_queue",
+                "\n\n!!!! derived next batch nb.batch.timestamp={}, inclusion_block.number={}, nb.inclusion_block.hash={}, nb.inclusion_block.parent_hash={} !!!\n\n",
+                nb.batch.timestamp(),
+                nb.inclusion_block.number,
+                nb.inclusion_block.hash,
+                nb.inclusion_block.parent_hash,
+            );
             return Ok(nb.batch);
         }
 
@@ -245,8 +262,8 @@ where
         let validity =
             data.check_batch(&self.cfg, &self.l1_blocks, parent, &mut self.fetcher).await;
         // Post-Holocene, future batches are dropped due to prevent gaps.
-        let drop = validity.is_drop() ||
-            (self.cfg.is_holocene_active(origin.timestamp) && validity.is_future());
+        let drop = validity.is_drop()
+            || (self.cfg.is_holocene_active(origin.timestamp) && validity.is_future());
         if drop {
             self.prev.flush();
             return Ok(());

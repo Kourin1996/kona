@@ -247,7 +247,15 @@ where
                 Err(PipelineError::NotEnoughData.temp())
             }
             BatchValidity::Drop => {
-                warn!(target: "batch_validator", "Invalid singular batch, flushing current channel.");
+                error!(
+                    target: "batch_validator",
+                    "!!!! Invalid singular batch, flushing current channel. l1_blocks={:?}, parent L2={}, stage_origin.number={}, stage_origin.hash={}, stage_origin.parent_hash={} !!!",
+                    self.l1_blocks,
+                    parent,
+                    stage_origin.number,
+                    stage_origin.hash,
+                    stage_origin.parent_hash,
+                );
                 self.prev.flush();
                 Err(PipelineError::NotEnoughData.temp())
             }
