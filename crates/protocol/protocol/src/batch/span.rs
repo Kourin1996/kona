@@ -221,7 +221,7 @@ impl SpanBatch {
                     l1_origin.timestamp,
                     l1_origin.id()
                 );
-                println!("\n\ndropping reason 16\n\n");
+                // println!("\n\ndropping reason 16\n\n");
                 return BatchValidity::Drop;
             }
 
@@ -246,7 +246,7 @@ impl SpanBatch {
                             info!(
                                 "batch exceeded sequencer time drift without adopting next origin, and next L1 origin would have been valid"
                             );
-                            println!("\n\ndropping reason 17\n\n");
+                            // println!("\n\ndropping reason 17\n\n");
                             return BatchValidity::Drop;
                         } else {
                             info!(
@@ -262,7 +262,7 @@ impl SpanBatch {
                         "batch exceeded sequencer time drift, sequencer must adopt new L1 origin to include transactions again, max_time: {}",
                         l1_origin.timestamp + max_drift
                     );
-                    println!("\n\ndropping reason 18\n\n");
+                    // println!("\n\ndropping reason 18\n\n");
                     return BatchValidity::Drop;
                 }
             }
@@ -274,7 +274,7 @@ impl SpanBatch {
                         "transaction data must not be empty, but found empty tx, tx_index: {}",
                         i
                     );
-                    println!("\n\ndropping reason 19\n\n");
+                    // println!("\n\ndropping reason 19\n\n");
                     return BatchValidity::Drop;
                 }
                 if tx.as_ref().first() == Some(&(OpTxType::Deposit as u8)) {
@@ -282,7 +282,7 @@ impl SpanBatch {
                         "sequencers may not embed any deposits into batch data, but found tx that has one, tx_index: {}",
                         i
                     );
-                    println!("\n\ndropping reason 20\n\n");
+                    // println!("\n\ndropping reason 20\n\n");
                     return BatchValidity::Drop;
                 }
 
@@ -291,7 +291,7 @@ impl SpanBatch {
                     && tx.as_ref().first() == Some(&(OpTxType::Eip7702 as u8))
                 {
                     warn!("EIP-7702 transactions are not supported pre-isthmus. tx_index: {}", i);
-                    println!("\n\ndropping reason 21\n\n");
+                    // println!("\n\ndropping reason 21\n\n");
                     return BatchValidity::Drop;
                 }
             }
@@ -324,7 +324,7 @@ impl SpanBatch {
                         safe_block.transactions.len(),
                         batch_txs.len()
                     );
-                    println!("\n\ndropping reason 22\n\n");
+                    // println!("\n\ndropping reason 22\n\n");
                     return BatchValidity::Drop;
                 }
                 let batch_txs_len = batch_txs.len();
@@ -334,7 +334,7 @@ impl SpanBatch {
                     safe_block.transactions[j + deposit_count].encode_2718(&mut buf);
                     if buf != batch_txs[j].0 {
                         warn!("overlapped block's transaction does not match");
-                        println!("\n\ndropping reason 23\n\n");
+                        // println!("\n\ndropping reason 23\n\n");
                         return BatchValidity::Drop;
                     }
                 }
@@ -348,7 +348,7 @@ impl SpanBatch {
                             "failed to extract L2BlockInfo from execution payload, hash: {}, err: {e}",
                             safe_block_payload.header.hash_slow()
                         );
-                        println!("\n\ndropping reason 24\n\n");
+                        // println!("\n\ndropping reason 24\n\n");
                         return BatchValidity::Drop;
                     }
                 };
@@ -357,7 +357,7 @@ impl SpanBatch {
                         "overlapped block's L1 origin number does not match {}, {}",
                         safe_block_ref.l1_origin.number, self.batches[i as usize].epoch_num
                     );
-                    println!("\n\ndropping reason 25\n\n");
+                    // println!("\n\ndropping reason 25\n\n");
                     return BatchValidity::Drop;
                 }
             }
@@ -408,7 +408,7 @@ impl SpanBatch {
                 batch_origin.id(),
                 batch_origin.timestamp
             );
-            println!("\n\ndropping reason 26\n\n");
+            // println!("\n\ndropping reason 26\n\n");
             return (BatchValidity::Drop, None);
         }
 
@@ -421,7 +421,7 @@ impl SpanBatch {
 
             // After holocene is activated, gaps are disallowed.
             if cfg.is_holocene_active(inclusion_block.timestamp) {
-                println!("\n\ndropping reason 27\n\n");
+                // println!("\n\ndropping reason 27\n\n");
                 return (BatchValidity::Drop, None);
             }
             return (BatchValidity::Future, None);
@@ -433,7 +433,7 @@ impl SpanBatch {
             return if cfg.is_holocene_active(inclusion_block.timestamp) {
                 (BatchValidity::Past, None)
             } else {
-                println!("\n\ndropping reason 28\n\n");
+                // println!("\n\ndropping reason 28\n\n");
                 (BatchValidity::Drop, None)
             };
         }
@@ -447,13 +447,13 @@ impl SpanBatch {
             if self.starting_timestamp() > l2_safe_head.block_info.timestamp {
                 // Batch timestamp cannot be between safe head and next timestamp.
                 warn!("batch has misaligned timestamp, block time is too short");
-                println!("\n\ndropping reason 29\n\n");
+                // println!("\n\ndropping reason 29\n\n");
                 return (BatchValidity::Drop, None);
             }
             if (l2_safe_head.block_info.timestamp - self.starting_timestamp()) % cfg.block_time != 0
             {
                 warn!("batch has misaligned timestamp, not overlapped exactly");
-                println!("\n\ndropping reason 30\n\n");
+                // println!("\n\ndropping reason 30\n\n");
                 return (BatchValidity::Drop, None);
             }
             parent_num = l2_safe_head.block_info.number
@@ -473,14 +473,14 @@ impl SpanBatch {
                 "parent block mismatch, expected: {parent_num}, received: {}. parent hash: {}, parent hash check: {}",
                 parent_block.block_info.number, parent_block.block_info.hash, self.parent_check,
             );
-            println!("\n\ndropping reason 31\n\n");
+            // println!("\n\ndropping reason 31\n\n");
             return (BatchValidity::Drop, None);
         }
 
         // Filter out batches that were included too late.
         if starting_epoch_num + cfg.seq_window_size < inclusion_block.number {
             warn!("batch was included too late, sequence window expired");
-            println!("\n\ndropping reason 32\n\n");
+            // println!("\n\ndropping reason 32\n\n");
             return (BatchValidity::Drop, None);
         }
 
@@ -491,7 +491,7 @@ impl SpanBatch {
                 starting_epoch_num,
                 parent_block.l1_origin.number + 1
             );
-            println!("\n\ndropping reason 33\n\n");
+            // println!("\n\ndropping reason 33\n\n");
             return (BatchValidity::Drop, None);
         }
 
@@ -507,7 +507,7 @@ impl SpanBatch {
                         "batch is for different L1 chain, epoch hash does not match, expected: {}",
                         l1_block.hash
                     );
-                    println!("\n\ndropping reason 34\n\n");
+                    // println!("\n\ndropping reason 34\n\n");
                     return (BatchValidity::Drop, None);
                 }
                 origin_checked = true;
@@ -521,7 +521,7 @@ impl SpanBatch {
 
         if starting_epoch_num < parent_block.l1_origin.number {
             warn!("dropped batch, epoch is too old, minimum: {:?}", parent_block.block_info.id());
-            println!("\n\ndropping reason 35\n\n");
+            // println!("\n\ndropping reason 35\n\n");
             return (BatchValidity::Drop, None);
         }
 
